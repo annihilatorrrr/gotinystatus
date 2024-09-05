@@ -1,5 +1,5 @@
-module gotemplate
+module gotinystatus
 
 go 1.23.0
 
-require github.com/PaulSonOfLars/gotgbot/v2 v2.0.0-rc.29
+require gopkg.in/yaml.v3 v3.0.1

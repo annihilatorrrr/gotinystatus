@@ -1,3 +1,5 @@
 **
 !go.*
 !*.go
+!*.html
+!checks.yaml
