@@ -29,14 +29,186 @@ type HistoryEntry struct {
 	Status    bool   `json:"status"`
 }
 
+const (
+	templateFile = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go TinyStatus</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            color: #e0e0e0;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #181818;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        h1, h2 {
+            color: #e0e0e0;
+            text-align: center;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+        .status-item {
+            background: #242424;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(255,255,255,0.1);
+            text-align: center;
+            transition: transform .2s, background 0.3s ease;
+        }
+        .status-item:hover {
+            transform: translateY(-5px);
+        }
+        .status-item h3 {
+            margin: 0 0 10px;
+        }
+        .status-up { color: #27ae60; }
+        .status-down { color: #e74c3c; }
+        .incidents {
+            background: #242424;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(255,255,255,0.1);
+            margin-bottom: 40px;
+        }
+        .footer {
+            text-align: center;
+            font-size: .9em;
+            color: #a0a0a0;
+            margin-top: 40px;
+        }
+        .footer a {
+            color: #9b59b6;
+            text-decoration: none;
+        }
+        .footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+<h1>Go TinyStatus</h1>
+<h2>Current Status:</h2>
+<div class="status-grid">
+    {{range .checks}}
+    <div class="status-item">
+        <h3>{{.name}}</h3>
+        <p class="{{if .status}}status-up{{else}}status-down{{end}}">
+            {{if .status}}Operational{{else}}Down{{end}}
+        </p>
+    </div>
+    {{end}}
+</div>
+<h2>Incident History</h2>
+<div class="incidents">
+    {{.incidents}}
+</div>
+<div class="footer">
+    <p>Last updated: {{.last_updated}}</p>
+    <p>Powered by <a href="https://github.com/annihilatorrrr/gotinystatus">GoTinyStatus</a></p>
+    <p><a href="history.html">View Status History</a></p>
+</div>
+</body>
+</html>`
+	historyTemplateFile = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go TinyStatus History</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            color: #e0e0e0;
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+            background: #181818;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        h1, h2 {
+            color: #e0e0e0;
+            text-align: center;
+        }
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .history-item {
+            background: #242424;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(255,255,255,0.1);
+            max-height: 300px;
+            overflow: auto;
+        }
+        .history-item h2 {
+            font-size: 1.2rem;
+            margin: 0;
+        }
+        .history-entry {
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .status-up { color: #27ae60; }
+        .status-down { color: #e74c3c; }
+        .footer {
+            text-align: center;
+            font-size: .9em;
+            color: #a0a0a0;
+            margin-top: 40px;
+        }
+        .footer a {
+            color: #9b59b6;
+            text-decoration: none;
+        }
+        .footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+<h1>Go TinyStatus History</h1>
+<div class="history-grid">
+    {{ range $service, $entries := .history }}
+    <div class="history-item">
+        <h2>{{ $service }}</h2>
+        {{ range $entry := $entries }}
+        <div class="history-entry">
+            <span>{{ index (split $entry.Timestamp "T") 0 }} {{ slice (index (split $entry.Timestamp "T") 1) 0 8 }}</span>
+            <span class="{{ if $entry.Status }}status-up{{ else }}status-down{{ end }}">
+                {{ if $entry.Status }}Up{{ else }}Down{{ end }}
+            </span>
+        </div>
+        {{ end }}
+    </div>
+    {{ end }}
+</div>
+<div class="footer">
+    <p>Last updated: {{.last_updated}}</p>
+    <p>Powered by <a href="https://github.com/annihilatorrrr/gotinystatus">GoTinyStatus</a></p>
+    <p><a href="index.html">Back to Current Status</a></p>
+</div>
+</body>
+</html>`
+)
+
 var (
-	checkInterval       = getEnvInt("CHECK_INTERVAL", 30)
-	maxHistoryEntries   = getEnvInt("MAX_HISTORY_ENTRIES", 10)
-	checksFile          = getEnv("CHECKS_FILE", "checks.yaml")
-	incidentsFile       = getEnv("INCIDENTS_FILE", "incidents.html")
-	templateFile        = getEnv("TEMPLATE_FILE", "index.template.html")
-	historyTemplateFile = getEnv("HISTORY_TEMPLATE_FILE", "history.template.html")
-	historyFile         = getEnv("STATUS_HISTORY_FILE", "history.json")
+	checkInterval     = getEnvInt("CHECK_INTERVAL", 30)
+	maxHistoryEntries = getEnvInt("MAX_HISTORY_ENTRIES", 10)
+	checksFile        = getEnv("CHECKS_FILE", "checks.yaml")
+	incidentsFile     = getEnv("INCIDENTS_FILE", "incidents.html")
+	historyFile       = getEnv("STATUS_HISTORY_FILE", "history.json")
 )
 
 func getEnv(key, fallback string) string {
@@ -140,11 +312,7 @@ func updateHistory(results []map[string]interface{}) {
 	saveHistory(history)
 }
 
-func renderTemplate(templateFile string, data map[string]interface{}) string {
-	tmplBytes, err := os.ReadFile(templateFile)
-	if err != nil {
-		log.Fatal(err)
-	}
+func renderTemplate(data map[string]interface{}) string {
 	funcMap := template.FuncMap{
 		"check": func(status bool) string {
 			if status {
@@ -153,7 +321,7 @@ func renderTemplate(templateFile string, data map[string]interface{}) string {
 			return "Down"
 		},
 	}
-	tmpl, err := template.New("status").Funcs(funcMap).Parse(string(tmplBytes))
+	tmpl, err := template.New("status").Funcs(funcMap).Parse(templateFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -166,15 +334,11 @@ func renderTemplate(templateFile string, data map[string]interface{}) string {
 
 func generateHistoryPage() {
 	history := loadHistory()
-	tmplBytes, err := os.ReadFile(historyTemplateFile)
-	if err != nil {
-		log.Fatal("Failed to read history template:", err)
-	}
 	tmpl, err := template.New("history").Funcs(template.FuncMap{
 		"split": func(s, sep string) []string {
 			return strings.Split(s, sep)
 		},
-	}).Parse(string(tmplBytes))
+	}).Parse(historyTemplateFile)
 	if err != nil {
 		log.Fatal("Failed to parse history template:", err)
 	}
@@ -213,7 +377,7 @@ func monitorServices() {
 			"incidents":    template.HTML(incidentMarkdown),
 			"last_updated": time.Now().Format("2006-01-02 15:04:05"),
 		}
-		html := renderTemplate(templateFile, data)
+		html := renderTemplate(data)
 		if err = os.WriteFile("index.html", []byte(html), 0644); err != nil {
 			log.Fatal("Failed to write index.html:", err)
 		}

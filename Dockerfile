@@ -6,8 +6,6 @@ RUN go build -ldflags="-w -s" .
 FROM alpine:3.20.2
 RUN apk update && apk upgrade --available && sync
 COPY --from=builder /gotinystatus/gotinystatus /gotinystatus
-COPY --from=builder /gotinystatus/index.template.html /index.template.html
 COPY --from=builder /gotinystatus/incidents.html /incidents.html
-COPY --from=builder /gotinystatus/history.template.html /history.template.html
 COPY --from=builder /gotinystatus/checks.yaml /checks.yaml
 ENTRYPOINT ["/gotinystatus"]
