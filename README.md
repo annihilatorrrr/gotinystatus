@@ -64,7 +64,7 @@ GoTinyStatus is a simple, customizable status page generator that allows you to 
 
 3. (Optional) Customize the `incidents.md` file to add any known incidents or maintenance schedules.
 
-4. (Optional) Modify the `index.template.html` and `history.template.html` files to customize the look and feel of your status pages.
+4. (Optional) Modify the `templateFile` and `historyTemplateFile` constant to customize the look and feel of your status pages.
 
 ## Usage
 
