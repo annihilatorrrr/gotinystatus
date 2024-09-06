@@ -212,6 +212,7 @@ var (
 	checksFile        = getEnv("CHECKS_FILE", "checks.yaml")
 	incidentsFile     = getEnv("INCIDENTS_FILE", "incidents.html")
 	historyFile       = getEnv("STATUS_HISTORY_FILE", "history.json")
+	port 		  = getEnv("PORT", "")
 )
 
 func getEnv(key, fallback string) string {
@@ -409,7 +410,7 @@ func serveFile(w http.ResponseWriter, r *http.Request, filePath string) {
 
 func main() {
 	log.Println("Monitoring services ...")
-	if port := getEnv("PORT", "9000"); port != "" {
+	if port != "" {
 		go monitorServices()
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/" {
