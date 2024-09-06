@@ -1,6 +1,6 @@
 # GoTinyStatus
 
-GoTinyStatus is a simple, customizable status page generator that allows you to monitor the status of various services and display them on a clean, dark mode, responsive web page. [Check out an online demo.](https://status.harry.id)
+GoTinyStatus is a simple, customizable status page generator that allows you to monitor the status of various services and display them on a clean, dark mode, responsive web page. [Check out an online demo.](https://status.memersgallery.tech/)
 
 
 ![Demo](https://github.com/user-attachments/assets/9611f924-22c5-4335-ab78-84b771edc023)
