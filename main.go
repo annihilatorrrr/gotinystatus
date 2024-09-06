@@ -212,7 +212,7 @@ var (
 	checksFile        = getEnv("CHECKS_FILE", "checks.yaml")
 	incidentsFile     = getEnv("INCIDENTS_FILE", "incidents.html")
 	historyFile       = getEnv("STATUS_HISTORY_FILE", "history.json")
-	port 		  = getEnv("PORT", "")
+	port              = getEnv("PORT", "")
 )
 
 func getEnv(key, fallback string) string {
