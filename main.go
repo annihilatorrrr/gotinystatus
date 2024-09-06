@@ -114,7 +114,7 @@ const (
 <div class="footer">
     <p>Last updated: {{.last_updated}}</p>
     <p>Powered by <a href="https://github.com/annihilatorrrr/gotinystatus">GoTinyStatus</a></p>
-    <p><a href="history.html">View Status History</a></p>
+    <p><a href="history">View Status History</a></p>
 </div>
 </body>
 </html>`
@@ -198,10 +198,12 @@ const (
 <div class="footer">
     <p>Last updated: {{.last_updated}}</p>
     <p>Powered by <a href="https://github.com/annihilatorrrr/gotinystatus">GoTinyStatus</a></p>
-    <p><a href="index.html">Back to Current Status</a></p>
+    <p><a href="/">Back to Current Status</a></p>
 </div>
 </body>
 </html>`
+	indexfile   = "index.html"
+	historyfile = "history.html"
 )
 
 var (
@@ -288,6 +290,9 @@ func loadHistory() map[string][]HistoryEntry {
 	}(file)
 	var history map[string][]HistoryEntry
 	_ = json.NewDecoder(file).Decode(&history)
+	if history == nil {
+		history = make(map[string][]HistoryEntry)
+	}
 	return history
 }
 
@@ -357,7 +362,7 @@ func generateHistoryPage() {
 	if err = tmpl.Execute(&buf, data); err != nil {
 		log.Fatal("Failed to execute history template:", err)
 	}
-	if err = os.WriteFile("history.html", buf.Bytes(), 0644); err != nil {
+	if err = os.WriteFile(historyfile, buf.Bytes(), 0644); err != nil {
 		log.Fatal("Failed to write history page:", err)
 	}
 }
@@ -385,7 +390,7 @@ func monitorServices() {
 			"last_updated": time.Now().Format("2006-01-02 15:04:05"),
 		}
 		html := renderTemplate(data)
-		if err = os.WriteFile("index.html", []byte(html), 0644); err != nil {
+		if err = os.WriteFile(indexfile, []byte(html), 0644); err != nil {
 			log.Fatal("Failed to write index.html:", err)
 		}
 		generateHistoryPage()
@@ -394,7 +399,37 @@ func monitorServices() {
 	}
 }
 
+func serveFile(w http.ResponseWriter, r *http.Request, filePath string) {
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		http.NotFound(w, r)
+		return
+	}
+	http.ServeFile(w, r, filePath)
+}
+
 func main() {
 	log.Println("Monitoring services ...")
-	monitorServices()
+	if port := getEnv("PORT", "9000"); port != "" {
+		go monitorServices()
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/" {
+				serveFile(w, r, "./"+indexfile)
+			} else {
+				http.NotFound(w, r)
+			}
+		})
+		http.HandleFunc("/history", func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/history" {
+				serveFile(w, r, "./"+historyfile)
+			} else {
+				http.NotFound(w, r)
+			}
+		})
+		log.Println("Server started!")
+		if err := http.ListenAndServe(":"+port, nil); err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		monitorServices()
+	}
 }

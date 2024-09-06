@@ -7,3 +7,8 @@
   type: http
   host: https://api.github.com
   expected_code: 200
+
+- name: Database
+  type: port
+  host: db.example.com
+  port: 5432
