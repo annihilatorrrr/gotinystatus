@@ -2,7 +2,8 @@
 
 GoTinyStatus is a simple, customizable status page generator that allows you to monitor the status of various services and display them on a clean, dark mode, responsive web page. [Check out an online demo.](https://status.harry.id)
 
-![image](https://github.com/user-attachments/assets/28227221-d1e1-442e-89a4-2a0a09615514)
+
+![Demo](https://github.com/user-attachments/assets/9611f924-22c5-4335-ab78-84b771edc023)
 
 ## NOTE:
 
@@ -43,6 +44,7 @@ GoTinyStatus is a simple, customizable status page generator that allows you to 
    CHECKS_FILE=checks.yaml
    INCIDENTS_FILE=incidents.html
    STATUS_HISTORY_FILE=history.json
+   PORT= Optional Port.
    ```
 
 2. Edit the `checks.yaml` file to add or modify the services you want to monitor. Example:
