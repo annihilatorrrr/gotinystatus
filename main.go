@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -213,6 +214,8 @@ var (
 	incidentsFile     = getEnv("INCIDENTS_FILE", "incidents.html")
 	historyFile       = getEnv("STATUS_HISTORY_FILE", "history.json")
 	port              = getEnv("PORT", "")
+	token             = getEnv("TOKEN", "")
+	chatid            = getEnv("CHATID", "")
 )
 
 func getEnv(key, fallback string) string {
@@ -323,6 +326,44 @@ func updateHistory(results []map[string]interface{}) {
 		}
 	}
 	saveHistory(history)
+	if token != "" {
+		for key, data := range loadHistory() {
+			if total := len(data); total >= 2 {
+				if data[1].Status == data[0].Status {
+					continue
+				}
+				okis := "Down!\nFrom last"
+				if data[1].Status {
+					okis = "Up!\nFrom last"
+				}
+				go func(thestr string) {
+					resp, err := http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&parse_mode=html&text=%s", token, chatid, url.QueryEscape(thestr)))
+					if err != nil {
+						log.Println(err.Error())
+						return
+					}
+					defer func(Body io.ReadCloser) {
+						_ = Body.Close()
+					}(resp.Body)
+				}(fmt.Sprintf("<b>%s is %s %ds!</b>", key, okis, checkInterval))
+			} else {
+				okis := "Down!\nFrom last"
+				if data[0].Status {
+					okis = "Up!\nFrom last"
+				}
+				go func(thestr string) {
+					resp, err := http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&parse_mode=html&text=%s", token, chatid, url.QueryEscape(thestr)))
+					if err != nil {
+						log.Println(err.Error())
+						return
+					}
+					defer func(Body io.ReadCloser) {
+						_ = Body.Close()
+					}(resp.Body)
+				}(fmt.Sprintf("<b>%s is %s %ds!</b>", key, okis, checkInterval))
+			}
+		}
+	}
 }
 
 func renderTemplate(data map[string]interface{}) string {
