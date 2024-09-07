@@ -17,6 +17,7 @@ GoTinyStatus is a simple, customizable status page generator that allows you to 
 - Incident history tracking
 - Automatic status updates at configurable intervals
 - The generated HTML is only 5KB in size
+- Telegram notification.
 
 ## Prerequisites
 
@@ -44,7 +45,9 @@ GoTinyStatus is a simple, customizable status page generator that allows you to 
    CHECKS_FILE=checks.yaml
    INCIDENTS_FILE=incidents.html
    STATUS_HISTORY_FILE=history.json
-   PORT= Optional Port.
+   PORT= Optional Port
+   TOKEN= Optional Telegram Bot TOKEN
+   CHATID= Optional Telegram Chat Id for notification
    ```
 
 2. Edit the `checks.yaml` file to add or modify the services you want to monitor. Example:
@@ -75,7 +78,7 @@ GoTinyStatus is a simple, customizable status page generator that allows you to 
    go run main.go
    ```
 
-2. The script will generate 2 files:
+2. The script will generate 3 files:
    - `index.html`: The main status page
    - `history.html`: The status history page
    - `history.json`: The status history and timestamp data
@@ -100,8 +103,8 @@ In order to run the script using Docker:
 
 ## Customization
 
-- Adjust the configuration variables in the `.env` file to customize the behavior of TinyStatus.
-- Customize the appearance of the status page by editing the CSS in `index.html.theme` and `history.html.theme`.
+- Adjust the configuration variables in the `.env` file to customize the behavior of GoTinyStatus.
+- Customize the appearance of the status page by editing the CSS in `templateFile` and `historyTemplateFile`.
 - Add or remove services by modifying the `checks.yaml` file.
 
 ## Contributing
