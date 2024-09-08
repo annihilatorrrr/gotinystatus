@@ -345,7 +345,7 @@ func updateHistory(results []map[string]interface{}) {
 					defer func(Body io.ReadCloser) {
 						_ = Body.Close()
 					}(resp.Body)
-				}(fmt.Sprintf("<b>%s is %s %ds!</b>", key, okis, checkInterval))
+				}(fmt.Sprintf("<b>%s is now %s %ds!</b>", key, okis, checkInterval))
 			} else {
 				okis := "Down!\nFrom last"
 				if data[0].Status {
@@ -360,7 +360,7 @@ func updateHistory(results []map[string]interface{}) {
 					defer func(Body io.ReadCloser) {
 						_ = Body.Close()
 					}(resp.Body)
-				}(fmt.Sprintf("<b>%s is %s %ds!</b>", key, okis, checkInterval))
+				}(fmt.Sprintf("<b>%s is now %s %ds!</b>", key, okis, checkInterval))
 			}
 		}
 	}
