@@ -85,12 +85,14 @@ GoTinyStatus is a simple, customizable status page generator that allows you to 
 
 3. To keep the status page continuously updated, you can run the script in the background:
    - On Unix-like systems (Linux, macOS):
+   Build:
      ```
-     just run the go app as service.
+     go build -ldflags="-w -s" .
      ```
-   - On Windows, you can use the Task Scheduler to run the script at startup.
+   Now just run the go app as service.
+   - On Windows, you can use the Task Scheduler to run the exe file at startup.
 
-4. Serve the generated HTML files using your preferred web server (e.g., Apache, Nginx, or a simple Python HTTP server for testing).
+4. Serve the generated HTML files using HTTP server at specific PORT.
 
 ## Using Docker
 

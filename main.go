@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"io"
 	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
+	"runtime"
+	"sort"
 	"strings"
 	"time"
 
@@ -114,8 +115,8 @@ const (
 </div>
 <div class="footer">
     <p>Last updated: {{.last_updated}}</p>
-    <p>Powered by <a href="https://github.com/annihilatorrrr/gotinystatus">GoTinyStatus</a></p>
     <p><a href="history">View Status History</a></p>
+	<p>Powered by <a href="https://github.com/annihilatorrrr/gotinystatus">GoTinyStatus</a></p>
 </div>
 </body>
 </html>`
@@ -198,8 +199,8 @@ const (
 </div>
 <div class="footer">
     <p>Last updated: {{.last_updated}}</p>
-    <p>Powered by <a href="https://github.com/annihilatorrrr/gotinystatus">GoTinyStatus</a></p>
     <p><a href="/">Back to Current Status</a></p>
+	<p>Powered by <a href="https://github.com/annihilatorrrr/gotinystatus">GoTinyStatus</a></p>
 </div>
 </body>
 </html>`
@@ -208,7 +209,7 @@ const (
 )
 
 var (
-	checkInterval     = getEnvInt("CHECK_INTERVAL", 30)
+	checkInterval     = getEnvInt("CHECK_INTERVAL", 60)
 	maxHistoryEntries = getEnvInt("MAX_HISTORY_ENTRIES", 10)
 	checksFile        = getEnv("CHECKS_FILE", "checks.yaml")
 	incidentsFile     = getEnv("INCIDENTS_FILE", "incidents.html")
@@ -239,9 +240,7 @@ func checkHTTP(url string, expectedCode int) bool {
 	if err != nil {
 		return false
 	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(resp.Body)
+	_ = resp.Body.Close()
 	return resp.StatusCode == expectedCode
 }
 
@@ -321,49 +320,16 @@ func updateHistory(results []map[string]interface{}) {
 			history[name] = []HistoryEntry{}
 		}
 		history[name] = append(history[name], HistoryEntry{currentTime, result["status"].(bool)})
+		sort.Slice(history[name], func(i, j int) bool {
+			timeI, _ := time.Parse(time.RFC3339, history[name][i].Timestamp)
+			timeJ, _ := time.Parse(time.RFC3339, history[name][j].Timestamp)
+			return timeI.After(timeJ)
+		})
 		if len(history[name]) > maxHistoryEntries {
-			history[name] = history[name][len(history[name])-maxHistoryEntries:]
+			history[name] = history[name][:maxHistoryEntries]
 		}
 	}
 	saveHistory(history)
-	if token != "" {
-		for key, data := range loadHistory() {
-			if total := len(data); total >= 2 {
-				if data[1].Status == data[0].Status {
-					continue
-				}
-				okis := "Down!\nFrom last"
-				if data[1].Status {
-					okis = "Up!\nFrom last"
-				}
-				go func(thestr string) {
-					resp, err := http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&parse_mode=html&text=%s", token, chatid, url.QueryEscape(thestr)))
-					if err != nil {
-						log.Println(err.Error())
-						return
-					}
-					defer func(Body io.ReadCloser) {
-						_ = Body.Close()
-					}(resp.Body)
-				}(fmt.Sprintf("<b>%s is now %s %ds!</b>", key, okis, checkInterval))
-			} else {
-				okis := "Down!\nFrom last"
-				if data[0].Status {
-					okis = "Up!\nFrom last"
-				}
-				go func(thestr string) {
-					resp, err := http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&parse_mode=html&text=%s", token, chatid, url.QueryEscape(thestr)))
-					if err != nil {
-						log.Println(err.Error())
-						return
-					}
-					defer func(Body io.ReadCloser) {
-						_ = Body.Close()
-					}(resp.Body)
-				}(fmt.Sprintf("<b>%s is now %s %ds!</b>", key, okis, checkInterval))
-			}
-		}
-	}
 }
 
 func renderTemplate(data map[string]interface{}) string {
@@ -437,6 +403,40 @@ func monitorServices() {
 		}
 		generateHistoryPage()
 		log.Println("Status pages updated!")
+		if token != "" && chatid != "" {
+			log.Println("Notifying on telegram ...")
+			for key, data := range loadHistory() {
+				if total := len(data); total >= 2 {
+					latestdata := data[:2]
+					if latestdata[0].Status == latestdata[1].Status {
+						continue
+					}
+					lastst := latestdata[1].Status
+					newinterval := checkInterval
+					for x, y := range data {
+						if x > 1 {
+							if y.Status == lastst {
+								newinterval += 60
+							} else {
+								break
+							}
+						}
+					}
+					tosend := fmt.Sprintf("<b>✅ %s is now Up!</b>\nSeen Down from last %ds!", key, newinterval)
+					if !latestdata[0].Status {
+						tosend = fmt.Sprintf("<b> 🛑 %s is now Down!</b>\nWas seen Up from last %ds!", key, newinterval)
+					}
+					_ = checkHTTP(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&parse_mode=html&text=%s", token, chatid, url.QueryEscape(tosend)), 200)
+				} else {
+					tosend := fmt.Sprintf("<b> 🛑 %s is now Down!</b>", key)
+					if data[0].Status {
+						tosend = fmt.Sprintf("<b>✅ %s is now Up!</b>", key)
+					}
+					_ = checkHTTP(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&parse_mode=html&text=%s", token, chatid, url.QueryEscape(tosend)), 200)
+				}
+			}
+			log.Println("Notified on telegram!")
+		}
 		time.Sleep(time.Duration(checkInterval) * time.Second)
 	}
 }
@@ -447,6 +447,47 @@ func serveFile(w http.ResponseWriter, r *http.Request, filePath string) {
 		return
 	}
 	http.ServeFile(w, r, filePath)
+}
+
+func handleHome(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method Not Allowed!", http.StatusMethodNotAllowed)
+		return
+	}
+	_, _ = fmt.Fprintf(w, `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Status</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #bb86fc;
+        }
+        pre {
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>I'm alive!</h1>
+    <p>Go Version: %s</p>
+    <p>Go Routines: %d</p>
+    <p>Source Code: <a href="https://github.com/annihilatorrrr/gotinystatus" style="color: #bb86fc;">Gotinystatus</a></p>
+</body>
+</html>`, runtime.Version(), runtime.NumGoroutine())
 }
 
 func main() {
@@ -460,8 +501,15 @@ func main() {
 				http.NotFound(w, r)
 			}
 		})
+		http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasPrefix(r.URL.Path, "/status") {
+				handleHome(w, r)
+			} else {
+				http.NotFound(w, r)
+			}
+		})
 		http.HandleFunc("/history", func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/history" {
+			if strings.HasPrefix(r.URL.Path, "/history") {
 				serveFile(w, r, "./"+historyfile)
 			} else {
 				http.NotFound(w, r)
@@ -469,9 +517,10 @@ func main() {
 		})
 		log.Println("Server started!")
 		if err := http.ListenAndServe(":"+port, nil); err != nil {
-			log.Fatal(err)
+			log.Println(err.Error())
 		}
 	} else {
 		monitorServices()
 	}
+	log.Println("Bye!")
 }
