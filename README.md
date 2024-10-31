@@ -11,7 +11,7 @@ GoTinyStatus is a simple, customizable status page generator that allows you to 
 
 ## Features
 
-- Monitor HTTP endpoints, ping hosts, and check open ports
+- Monitor HTTP endpoints, ping hosts, ipv6 address and check open ports
 - Responsive design for both status page and history page
 - Customizable service checks via YAML configuration
 - Incident history tracking
