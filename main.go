@@ -247,26 +247,26 @@ func checkHTTP(url string, expectedCode int) bool {
 }
 
 func pingIPv6(address string) bool {
-	conn, err := net.DialTimeout("ip6:ipv6-icmp", address, 5*time.Second)
-	if err != nil {
-		return false
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("ping", "-n", "1", "-w", "5000", address)
+	case "darwin":
+		cmd = exec.Command("ping", "-c", "1", "-W", "5", address)
+	default:
+		cmd = exec.Command("ping", "-6", "-c", "1", "-W", "5", address)
 	}
-	defer func(conn net.Conn) {
-		_ = conn.Close()
-	}(conn)
-	if _, err = conn.Write([]byte("ping")); err != nil {
-		return false
-	}
-	buffer := make([]byte, 1024)
-	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
-	if _, err = conn.Read(buffer); err != nil {
-		return false
-	}
-	return true
+	return cmd.Run() == nil
 }
 
 func checkPing(host string) bool {
-	cmd := exec.Command("ping", "-c", "1", "-W", "5", host)
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("ping", "-n", "1", "-w", "5000", host)
+	default:
+		cmd = exec.Command("ping", "-c", "1", "-W", "5", host)
+	}
 	return cmd.Run() == nil
 }
 
