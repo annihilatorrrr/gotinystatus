@@ -23,6 +23,7 @@ type Check struct {
 	Name         string `yaml:"name"`
 	Type         string `yaml:"type"`
 	Host         string `yaml:"host"`
+	Address      string `yaml:"address"`
 	Port         int    `yaml:"port"`
 	ExpectedCode int    `yaml:"expected_code"`
 }
@@ -236,7 +237,8 @@ func getEnvInt(key string, fallback int) int {
 }
 
 func checkHTTP(url string, expectedCode int) bool {
-	resp, err := http.Get(url)
+	client := &http.Client{Timeout: time.Second * 5}
+	resp, err := client.Get(url)
 	if err != nil {
 		return false
 	}
@@ -244,19 +246,36 @@ func checkHTTP(url string, expectedCode int) bool {
 	return resp.StatusCode == expectedCode
 }
 
-func checkPing(host string) bool {
-	cmd := exec.Command("ping", "-c", "1", "-W", "2", host)
-	return cmd.Run() == nil
-}
-
-func checkPort(host string, port int) bool {
-	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", host, port), 2*time.Second)
+func pingIPv6(address string) bool {
+	conn, err := net.DialTimeout("ip6:ipv6-icmp", address, 5*time.Second)
 	if err != nil {
 		return false
 	}
 	defer func(conn net.Conn) {
 		_ = conn.Close()
 	}(conn)
+	if _, err = conn.Write([]byte("ping")); err != nil {
+		return false
+	}
+	buffer := make([]byte, 1024)
+	_ = conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	if _, err = conn.Read(buffer); err != nil {
+		return false
+	}
+	return true
+}
+
+func checkPing(host string) bool {
+	cmd := exec.Command("ping", "-c", "1", "-W", "5", host)
+	return cmd.Run() == nil
+}
+
+func checkPort(host string, port int) bool {
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", host, port), 5*time.Second)
+	if err != nil {
+		return false
+	}
+	_ = conn.Close()
 	return true
 }
 
@@ -273,6 +292,8 @@ func runChecks(checks []Check) []map[string]interface{} {
 				status = checkPing(c.Host)
 			case "port":
 				status = checkPort(c.Host, c.Port)
+			case "ipv6":
+				status = pingIPv6(c.Address)
 			}
 			resultsCh <- map[string]interface{}{"name": c.Name, "status": status}
 		}(check)
