@@ -12,3 +12,7 @@
   type: port
   host: db.example.com
   port: 5432
+
+- name: Server
+  type: ipv6
+  address: 2001:db8:85a3::8a2e:370:7334
