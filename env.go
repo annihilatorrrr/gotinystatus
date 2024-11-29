@@ -3,13 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"path"
+
 	"github.com/gomarkdown/markdown"
 	"github.com/joho/godotenv"
 	"github.com/sethvargo/go-envconfig"
 	"gopkg.in/yaml.v3"
-	"log"
-	"os"
-	"path"
 )
 
 type Config struct {
