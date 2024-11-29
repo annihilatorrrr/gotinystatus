@@ -229,7 +229,7 @@ func (c *Config) generateHistoryPage() {
 func (c *Config) monitorServices() {
 	for {
 		groups := c.ReadChecks()
-		//log.Printf("Groups: %+v", groups)
+		// log.Printf("Groups: %+v", groups)
 		results := runChecks(groups)
 		c.updateHistory(results)
 		data := map[string]interface{}{
