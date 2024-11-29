@@ -331,8 +331,6 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	runtime.GOMAXPROCS(1) // 1 core is enough
-
 	c := readEnv()
 	log.Println("Monitoring services ...")
 
