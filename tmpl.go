@@ -85,7 +85,7 @@ const templateFile = `<!DOCTYPE html>
 </div>
 <div class="footer">
     <p>Last updated: {{.last_updated}}</p>
-    <p><a href="history">View Status History</a></p>
+    <p><a href="history.html">View Status History</a></p>
 	<p>Powered by <a href="https://github.com/annihilatorrrr/gotinystatus">GoTinyStatus</a></p>
 </div>
 </body>

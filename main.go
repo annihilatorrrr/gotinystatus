@@ -343,7 +343,7 @@ func main() {
 				http.NotFound(w, r)
 			}
 		})
-		http.HandleFunc("/history", func(w http.ResponseWriter, r *http.Request) {
+		http.HandleFunc("/history.html", func(w http.ResponseWriter, r *http.Request) {
 			if strings.HasPrefix(r.URL.Path, "/history") {
 				serveFile(w, r, "./"+c.HistoryHtmlFile())
 			} else {

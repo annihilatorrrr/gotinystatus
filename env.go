@@ -49,6 +49,7 @@ func (c *Config) PrintEnv() {
 	fmt.Printf("CHECKS_FILE=%s\n", c.ChecksFile)
 	fmt.Printf("INCIDENTS_FILE=%s\n", c.IncidentsFile)
 	fmt.Printf("STATUS_HISTORY_FILE=%s\n", c.HistoryFile)
+	fmt.Printf("HTML_OUTPUT_DIRECTORY=%s\n", c.HtmlOutputDirectory)
 	fmt.Printf("PORT=%d\n", c.Port)
 	fmt.Printf("TOKEN=%s\n", c.Token)
 	fmt.Printf("CHATID=%s\n", c.Chatid)
