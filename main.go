@@ -15,16 +15,19 @@ import (
 	"sort"
 	"strings"
 	"time"
-
-	"gopkg.in/yaml.v3"
 )
+
+type Group struct {
+	Title  string  `yaml:"title"`
+	Checks []Check `yaml:"checks"`
+}
 
 type Check struct {
 	Name         string `yaml:"name"`
 	Type         string `yaml:"type"`
 	Host         string `yaml:"host"`
 	Address      string `yaml:"address"`
-	Port         int    `yaml:"port"`
+	Port         int    `yaml:"Port"`
 	ExpectedCode int    `yaml:"expected_code"`
 }
 
@@ -33,207 +36,14 @@ type HistoryEntry struct {
 	Status    bool   `json:"status"`
 }
 
-const (
-	templateFile = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Go TinyStatus</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            line-height: 1.6;
-            color: #e0e0e0;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #181818;
-            transition: background 0.3s ease, color 0.3s ease;
-        }
-        h1, h2 {
-            color: #e0e0e0;
-            text-align: center;
-        }
-        .status-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 40px;
-        }
-        .status-item {
-            background: #242424;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 2px 4px rgba(255,255,255,0.1);
-            text-align: center;
-            transition: transform .2s, background 0.3s ease;
-        }
-        .status-item:hover {
-            transform: translateY(-5px);
-        }
-        .status-item h3 {
-            margin: 0 0 10px;
-        }
-        .status-up { color: #27ae60; }
-        .status-down { color: #e74c3c; }
-        .incidents {
-            background: #242424;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(255,255,255,0.1);
-            margin-bottom: 40px;
-        }
-        .footer {
-            text-align: center;
-            font-size: .9em;
-            color: #a0a0a0;
-            margin-top: 40px;
-        }
-        .footer a {
-            color: #9b59b6;
-            text-decoration: none;
-        }
-        .footer a:hover { text-decoration: underline; }
-    </style>
-</head>
-<body>
-<h1>Go TinyStatus</h1>
-<h2>Current Status:</h2>
-<div class="status-grid">
-    {{range .checks}}
-    <div class="status-item">
-        <h3>{{.name}}</h3>
-        <p class="{{if .status}}status-up{{else}}status-down{{end}}">
-            {{if .status}}Operational{{else}}Down{{end}}
-        </p>
-    </div>
-    {{end}}
-</div>
-<h2>Incident History</h2>
-<div class="incidents">
-    {{.incidents}}
-</div>
-<div class="footer">
-    <p>Last updated: {{.last_updated}}</p>
-    <p><a href="history">View Status History</a></p>
-	<p>Powered by <a href="https://github.com/annihilatorrrr/gotinystatus">GoTinyStatus</a></p>
-</div>
-</body>
-</html>`
-	historyTemplateFile = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Go TinyStatus History</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            line-height: 1.6;
-            color: #e0e0e0;
-            max-width: 1200px;
-            margin: auto;
-            padding: 20px;
-            background: #181818;
-            transition: background 0.3s ease, color 0.3s ease;
-        }
-        h1, h2 {
-            color: #e0e0e0;
-            text-align: center;
-        }
-        .history-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-        .history-item {
-            background: #242424;
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 2px 4px rgba(255,255,255,0.1);
-            max-height: 300px;
-            overflow: auto;
-        }
-        .history-item h2 {
-            font-size: 1.2rem;
-            margin: 0;
-        }
-        .history-entry {
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-            display: flex;
-            justify-content: space-between;
-        }
-        .status-up { color: #27ae60; }
-        .status-down { color: #e74c3c; }
-        .footer {
-            text-align: center;
-            font-size: .9em;
-            color: #a0a0a0;
-            margin-top: 40px;
-        }
-        .footer a {
-            color: #9b59b6;
-            text-decoration: none;
-        }
-        .footer a:hover { text-decoration: underline; }
-    </style>
-</head>
-<body>
-<h1>Go TinyStatus History</h1>
-<div class="history-grid">
-    {{ range $service, $entries := .history }}
-    <div class="history-item">
-        <h2>{{ $service }}</h2>
-        {{ range $entry := $entries }}
-        <div class="history-entry">
-            <span>{{ index (split $entry.Timestamp "T") 0 }} {{ slice (index (split $entry.Timestamp "T") 1) 0 8 }}</span>
-            <span class="{{ if $entry.Status }}status-up{{ else }}status-down{{ end }}">
-                {{ if $entry.Status }}Up{{ else }}Down{{ end }}
-            </span>
-        </div>
-        {{ end }}
-    </div>
-    {{ end }}
-</div>
-<div class="footer">
-    <p>Last updated: {{.last_updated}}</p>
-    <p><a href="/">Back to Current Status</a></p>
-	<p>Powered by <a href="https://github.com/annihilatorrrr/gotinystatus">GoTinyStatus</a></p>
-</div>
-</body>
-</html>`
-	indexfile   = "index.html"
-	historyfile = "history.html"
-)
-
-var (
-	checkInterval     = getEnvInt("CHECK_INTERVAL", 60)
-	maxHistoryEntries = getEnvInt("MAX_HISTORY_ENTRIES", 10)
-	checksFile        = getEnv("CHECKS_FILE", "checks.yaml")
-	incidentsFile     = getEnv("INCIDENTS_FILE", "incidents.html")
-	historyFile       = getEnv("STATUS_HISTORY_FILE", "history.json")
-	port              = getEnv("PORT", "")
-	token             = getEnv("TOKEN", "")
-	chatid            = getEnv("CHATID", "")
-)
-
-func getEnv(key, fallback string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return value
-	}
-	return fallback
+type GroupCheckResult struct {
+	Title        string
+	CheckResults []CheckResult
 }
 
-func getEnvInt(key string, fallback int) int {
-	if value, exists := os.LookupEnv(key); exists {
-		var intValue int
-		_, _ = fmt.Sscanf(value, "%d", &intValue)
-		return intValue
-	}
-	return fallback
+type CheckResult struct {
+	Name   string
+	Status bool
 }
 
 func checkHTTP(url string, expectedCode int) bool {
@@ -279,33 +89,50 @@ func checkPort(host string, port int) bool {
 	return true
 }
 
-func runChecks(checks []Check) []map[string]interface{} {
-	var results []map[string]interface{}
-	resultsCh := make(chan map[string]interface{}, len(checks))
-	for _, check := range checks {
+func runChecks(groups []Group) []GroupCheckResult {
+	var results []GroupCheckResult
+	groupResultsCh := make(chan GroupCheckResult, len(groups))
+	for _, group := range groups {
+		go func(g Group) {
+			groupResultsCh <- checkGroup(g)
+		}(group)
+	}
+	for i := 0; i < len(groups); i++ {
+		results = append(results, <-groupResultsCh)
+	}
+	return results
+}
+
+func checkGroup(g Group) GroupCheckResult {
+	var checkResults []CheckResult
+
+	resultsCh := make(chan CheckResult, len(g.Checks))
+	for _, check := range g.Checks {
 		go func(c Check) {
 			var status bool
+
 			switch c.Type {
 			case "http":
 				status = checkHTTP(c.Host, c.ExpectedCode)
 			case "ping":
 				status = checkPing(c.Host)
-			case "port":
+			case "Port":
 				status = checkPort(c.Host, c.Port)
 			case "ipv6":
 				status = pingIPv6(c.Address)
 			}
-			resultsCh <- map[string]interface{}{"name": c.Name, "status": status}
+			resultsCh <- CheckResult{c.Name, status}
 		}(check)
 	}
-	for i := 0; i < len(checks); i++ {
-		results = append(results, <-resultsCh)
+	for i := 0; i < len(g.Checks); i++ {
+		checkResults = append(checkResults, <-resultsCh)
 	}
-	return results
+
+	return GroupCheckResult{g.Title, checkResults}
 }
 
-func loadHistory() map[string][]HistoryEntry {
-	file, err := os.Open(historyFile)
+func (c *Config) loadHistory() map[string][]HistoryEntry {
+	file, err := os.Open(c.HistoryFile)
 	if err != nil {
 		return map[string][]HistoryEntry{}
 	}
@@ -320,8 +147,8 @@ func loadHistory() map[string][]HistoryEntry {
 	return history
 }
 
-func saveHistory(history map[string][]HistoryEntry) {
-	file, err := os.Create(historyFile)
+func (c *Config) saveHistory(history map[string][]HistoryEntry) {
+	file, err := os.Create(c.HistoryFile)
 	if err != nil {
 		log.Println("Failed to save history:", err)
 		return
@@ -332,25 +159,27 @@ func saveHistory(history map[string][]HistoryEntry) {
 	_ = json.NewEncoder(file).Encode(history)
 }
 
-func updateHistory(results []map[string]interface{}) {
-	history := loadHistory()
+func (c *Config) updateHistory(results []GroupCheckResult) {
+	history := c.loadHistory()
 	currentTime := time.Now().Format(time.RFC3339)
-	for _, result := range results {
-		name := result["name"].(string)
-		if _, exists := history[name]; !exists {
-			history[name] = []HistoryEntry{}
-		}
-		history[name] = append(history[name], HistoryEntry{currentTime, result["status"].(bool)})
-		sort.Slice(history[name], func(i, j int) bool {
-			timeI, _ := time.Parse(time.RFC3339, history[name][i].Timestamp)
-			timeJ, _ := time.Parse(time.RFC3339, history[name][j].Timestamp)
-			return timeI.After(timeJ)
-		})
-		if len(history[name]) > maxHistoryEntries {
-			history[name] = history[name][:maxHistoryEntries]
+	for _, group := range results {
+		for _, result := range group.CheckResults {
+			name := result.Name
+			if _, exists := history[name]; !exists {
+				history[name] = []HistoryEntry{}
+			}
+			history[name] = append(history[name], HistoryEntry{currentTime, result.Status})
+			sort.Slice(history[name], func(i, j int) bool {
+				timeI, _ := time.Parse(time.RFC3339, history[name][i].Timestamp)
+				timeJ, _ := time.Parse(time.RFC3339, history[name][j].Timestamp)
+				return timeI.After(timeJ)
+			})
+			if len(history[name]) > c.MaxHistoryEntries {
+				history[name] = history[name][:c.MaxHistoryEntries]
+			}
 		}
 	}
-	saveHistory(history)
+	c.saveHistory(history)
 }
 
 func renderTemplate(data map[string]interface{}) string {
@@ -373,8 +202,8 @@ func renderTemplate(data map[string]interface{}) string {
 	return buf.String()
 }
 
-func generateHistoryPage() {
-	history := loadHistory()
+func (c *Config) generateHistoryPage() {
+	history := c.loadHistory()
 	tmpl, err := template.New("history").Funcs(template.FuncMap{
 		"split": func(s, sep string) []string {
 			return strings.Split(s, sep)
@@ -391,49 +220,38 @@ func generateHistoryPage() {
 	if err = tmpl.Execute(&buf, data); err != nil {
 		log.Fatal("Failed to execute history template:", err)
 	}
-	if err = os.WriteFile(historyfile, buf.Bytes(), 0644); err != nil {
+	if err = os.WriteFile(c.HistoryHtmlFile(), buf.Bytes(), 0644); err != nil {
 		log.Fatal("Failed to write history page:", err)
 	}
 }
 
-func monitorServices() {
+func (c *Config) monitorServices() {
 	for {
-		checksData, err := os.ReadFile(checksFile)
-		if err != nil {
-			log.Fatal("Failed to load checks file:", err)
-		}
-		var checks []Check
-		if err = yaml.Unmarshal(checksData, &checks); err != nil {
-			log.Fatal("Failed to parse checks file:", err)
-		}
-		results := runChecks(checks)
-		updateHistory(results)
-		incidentMarkdown, err := os.ReadFile(incidentsFile)
-		if err != nil {
-			log.Println("Failed to load incidents:", err)
-			incidentMarkdown = []byte("<h2>All Fine!</h2>")
-		}
+		groups := c.ReadChecks()
+		log.Printf("Groups: %+v", groups)
+		results := runChecks(groups)
+		c.updateHistory(results)
 		data := map[string]interface{}{
-			"checks":       results,
-			"incidents":    template.HTML(incidentMarkdown),
+			"groups":       results,
+			"incidents":    template.HTML(c.ReadIncidentHtml()),
 			"last_updated": time.Now().Format("2006-01-02 15:04:05"),
 		}
 		html := renderTemplate(data)
-		if err = os.WriteFile(indexfile, []byte(html), 0644); err != nil {
+		if err := os.WriteFile(c.IndexHtmlFile(), []byte(html), 0644); err != nil {
 			log.Fatal("Failed to write index.html:", err)
 		}
-		generateHistoryPage()
+		c.generateHistoryPage()
 		log.Println("Status pages updated!")
-		if token != "" && chatid != "" {
+		if c.Token != "" && c.Chatid != "" {
 			log.Println("Notifying on telegram ...")
-			for key, data := range loadHistory() {
+			for key, data := range c.loadHistory() {
 				if total := len(data); total >= 2 {
 					latestdata := data[:2]
 					if latestdata[0].Status == latestdata[1].Status {
 						continue
 					}
 					lastst := latestdata[1].Status
-					newinterval := checkInterval
+					newinterval := c.CheckInterval
 					for x, y := range data {
 						if x > 1 {
 							if y.Status == lastst {
@@ -447,18 +265,18 @@ func monitorServices() {
 					if !latestdata[0].Status {
 						tosend = fmt.Sprintf("<b> 🛑 %s is now Down!</b>\nWas seen Up from last %ds!", key, newinterval)
 					}
-					_ = checkHTTP(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&parse_mode=html&text=%s", token, chatid, url.QueryEscape(tosend)), 200)
+					_ = checkHTTP(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&parse_mode=html&text=%s", c.Token, c.Chatid, url.QueryEscape(tosend)), 200)
 				} else {
 					tosend := fmt.Sprintf("<b> 🛑 %s is now Down!</b>", key)
 					if data[0].Status {
 						tosend = fmt.Sprintf("<b>✅ %s is now Up!</b>", key)
 					}
-					_ = checkHTTP(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&parse_mode=html&text=%s", token, chatid, url.QueryEscape(tosend)), 200)
+					_ = checkHTTP(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&parse_mode=html&text=%s", c.Token, c.Chatid, url.QueryEscape(tosend)), 200)
 				}
 			}
 			log.Println("Notified on telegram!")
 		}
-		time.Sleep(time.Duration(checkInterval) * time.Second)
+		time.Sleep(time.Duration(c.CheckInterval) * time.Second)
 	}
 }
 
@@ -512,12 +330,16 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	c := readEnv()
 	log.Println("Monitoring services ...")
-	if port != "" {
-		go monitorServices()
+
+	c.PrintEnv()
+
+	if c.Port != 0 {
+		go c.monitorServices()
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/" {
-				serveFile(w, r, "./"+indexfile)
+				serveFile(w, r, "./"+c.IndexHtmlFile())
 			} else {
 				http.NotFound(w, r)
 			}
@@ -531,17 +353,17 @@ func main() {
 		})
 		http.HandleFunc("/history", func(w http.ResponseWriter, r *http.Request) {
 			if strings.HasPrefix(r.URL.Path, "/history") {
-				serveFile(w, r, "./"+historyfile)
+				serveFile(w, r, "./"+c.HistoryHtmlFile())
 			} else {
 				http.NotFound(w, r)
 			}
 		})
 		log.Println("Server started!")
-		if err := http.ListenAndServe(":"+port, nil); err != nil {
+		if err := http.ListenAndServe(c.ListenHost(), nil); err != nil {
 			log.Println(err.Error())
 		}
 	} else {
-		monitorServices()
+		c.monitorServices()
 	}
 	log.Println("Bye!")
 }
