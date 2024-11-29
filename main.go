@@ -183,15 +183,7 @@ func (c *Config) updateHistory(results []GroupCheckResult) {
 }
 
 func renderTemplate(data map[string]interface{}) string {
-	funcMap := template.FuncMap{
-		"check": func(status bool) string {
-			if status {
-				return "Up"
-			}
-			return "Down"
-		},
-	}
-	tmpl, err := template.New("status").Funcs(funcMap).Parse(templateFile)
+	tmpl, err := template.New("status").Parse(templateFile)
 	if err != nil {
 		log.Fatal(err)
 	}

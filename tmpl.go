@@ -66,14 +66,14 @@ const templateFile = `<!DOCTYPE html>
 <body>
 <h1>Go TinyStatus</h1>
 <h2>Current Status:</h2>
-{{range .groups}}
-<h3>{{.Title}} Status</h3>
+{{range $group := .groups}}
+<h3>{{$group.Title}} Status</h3>
 <div class="status-grid">
-    {{range .CheckResults}}
+    {{range $result := $group.CheckResults}}
     <div class="status-item">
-        <h3>{{.Name}}</h3>
-        <p class="{{if .Status}}status-up{{else}}status-down{{end}}">
-            {{if .Status}}Operational{{else}}Down{{end}}
+        <h3>{{$result.Name}}</h3>
+        <p class="{{if $result.Status}}status-up{{else}}status-down{{end}}">
+            {{if $result.Status}}Operational{{else}}Down{{end}}
         </p>
     </div>
     {{end}}
