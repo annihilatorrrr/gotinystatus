@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -90,25 +91,34 @@ func checkPort(host string, port int) bool {
 }
 
 func runChecks(groups []Group) []GroupCheckResult {
-	var results []GroupCheckResult
-	groupResultsCh := make(chan GroupCheckResult, len(groups))
-	for _, group := range groups {
+	numGroups := len(groups)
+	results := make([]GroupCheckResult, numGroups)
+
+	wg := sync.WaitGroup{}
+
+	for idx, group := range groups {
+		wg.Add(1)
 		go func(g Group) {
-			groupResultsCh <- checkGroup(g)
+			defer wg.Done()
+			results[idx] = checkGroup(g)
 		}(group)
 	}
-	for i := 0; i < len(groups); i++ {
-		results = append(results, <-groupResultsCh)
-	}
+
+	wg.Wait()
+
 	return results
 }
 
 func checkGroup(g Group) GroupCheckResult {
-	var checkResults []CheckResult
+	numResults := len(g.Checks)
+	checkResults := make([]CheckResult, numResults)
 
-	resultsCh := make(chan CheckResult, len(g.Checks))
-	for _, check := range g.Checks {
+	wg := sync.WaitGroup{}
+
+	for idx, check := range g.Checks {
+		wg.Add(1)
 		go func(c Check) {
+			defer wg.Done()
 			var status bool
 
 			switch c.Type {
@@ -121,12 +131,11 @@ func checkGroup(g Group) GroupCheckResult {
 			case "ipv6":
 				status = pingIPv6(c.Address)
 			}
-			resultsCh <- CheckResult{c.Name, status}
+			checkResults[idx] = CheckResult{c.Name, status}
 		}(check)
 	}
-	for i := 0; i < len(g.Checks); i++ {
-		checkResults = append(checkResults, <-resultsCh)
-	}
+
+	wg.Wait()
 
 	return GroupCheckResult{g.Title, checkResults}
 }
@@ -322,12 +331,16 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	runtime.GOMAXPROCS(1) // 1 core is enough
+
 	c := readEnv()
 	log.Println("Monitoring services ...")
 
 	c.PrintEnv()
 
 	if c.Port != 0 {
+		log.Printf("Listening on host: %s\n", c.ListenHost())
+
 		go c.monitorServices()
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/" {
