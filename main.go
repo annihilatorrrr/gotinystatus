@@ -334,7 +334,7 @@ func main() {
 	c := readEnv()
 	log.Println("Monitoring services ...")
 
-	c.PrintEnv()
+	// c.PrintEnv()
 
 	if c.Port != 0 {
 		log.Printf("Listening on host: %s\n", c.ListenHost())
