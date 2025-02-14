@@ -325,12 +325,9 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 func main() {
 	c := readEnv()
 	log.Println("Monitoring services ...")
-
 	// c.PrintEnv()
-
 	if c.Port != 0 {
 		log.Printf("Listening on host: %s\n", c.ListenHost())
-
 		go c.monitorServices()
 		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/" {

@@ -83,6 +83,5 @@ func (c *Config) ReadChecks() []Group {
 	if err = yaml.Unmarshal(checksData, &groups); err != nil {
 		log.Fatal("Failed to parse checks file:", err)
 	}
-
 	return groups
 }
