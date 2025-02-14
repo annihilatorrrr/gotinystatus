@@ -26,20 +26,16 @@ type Config struct {
 }
 
 func readEnv() Config {
-	godotenv.Load()
-
-	ctx := context.Background()
-
+	if err := godotenv.Load(); err != nil {
+		return Config{}
+	}
 	var ret Config
-
-	if err := envconfig.Process(ctx, &ret); err != nil {
+	if err := envconfig.Process(context.Background(), &ret); err != nil {
 		log.Fatal(err)
 	}
-
 	if err := os.MkdirAll(ret.HtmlOutputDirectory, 0755); err != nil {
 		log.Fatal(err)
 	}
-
 	return ret
 }
 

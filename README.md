@@ -81,7 +81,7 @@ GoTinyStatus is a simple, customizable status page generator that allows you to 
 2. The script will generate 3 files:
    - `index.html`: The main status page
    - `history.html`: The status history page
-   - `history.json`: The status history and timestamp data
+   - `history.json`: The status history and timestamp hdata
 
 3. To keep the status page continuously updated, you can run the script in the background:
    - On Unix-like systems (Linux, macOS):

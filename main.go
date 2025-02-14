@@ -93,9 +93,7 @@ func checkPort(host string, port int) bool {
 func runChecks(groups []Group) []GroupCheckResult {
 	numGroups := len(groups)
 	results := make([]GroupCheckResult, numGroups)
-
 	wg := sync.WaitGroup{}
-
 	for idx, group := range groups {
 		wg.Add(1)
 		go func(g Group) {
@@ -103,18 +101,14 @@ func runChecks(groups []Group) []GroupCheckResult {
 			results[idx] = checkGroup(g)
 		}(group)
 	}
-
 	wg.Wait()
-
 	return results
 }
 
 func checkGroup(g Group) GroupCheckResult {
 	numResults := len(g.Checks)
 	checkResults := make([]CheckResult, numResults)
-
 	wg := sync.WaitGroup{}
-
 	for idx, check := range g.Checks {
 		wg.Add(1)
 		go func(c Check) {
@@ -134,9 +128,7 @@ func checkGroup(g Group) GroupCheckResult {
 			checkResults[idx] = CheckResult{c.Name, status}
 		}(check)
 	}
-
 	wg.Wait()
-
 	return GroupCheckResult{g.Title, checkResults}
 }
 
@@ -245,15 +237,15 @@ func (c *Config) monitorServices() {
 		log.Println("Status pages updated!")
 		if c.Token != "" && c.Chatid != "" {
 			log.Println("Notifying on telegram ...")
-			for key, data := range c.loadHistory() {
-				if total := len(data); total >= 2 {
-					latestdata := data[:2]
+			for key, hdata := range c.loadHistory() {
+				if total := len(hdata); total >= 2 {
+					latestdata := hdata[:2]
 					if latestdata[0].Status == latestdata[1].Status {
 						continue
 					}
 					lastst := latestdata[1].Status
 					newinterval := c.CheckInterval
-					for x, y := range data {
+					for x, y := range hdata {
 						if x > 1 {
 							if y.Status == lastst {
 								newinterval += 60
@@ -269,7 +261,7 @@ func (c *Config) monitorServices() {
 					_ = checkHTTP(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&parse_mode=html&text=%s", c.Token, c.Chatid, url.QueryEscape(tosend)), 200)
 				} else {
 					tosend := fmt.Sprintf("<b> 🛑 %s is now Down!</b>", key)
-					if data[0].Status {
+					if hdata[0].Status {
 						tosend = fmt.Sprintf("<b>✅ %s is now Up!</b>", key)
 					}
 					_ = checkHTTP(fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s&parse_mode=html&text=%s", c.Token, c.Chatid, url.QueryEscape(tosend)), 200)
