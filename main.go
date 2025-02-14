@@ -28,7 +28,7 @@ type Check struct {
 	Type         string `yaml:"type"`
 	Host         string `yaml:"host"`
 	Address      string `yaml:"address"`
-	Port         int    `yaml:"Port"`
+	Port         int    `yaml:"port"`
 	ExpectedCode int    `yaml:"expected_code"`
 }
 
