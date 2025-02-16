@@ -3,37 +3,31 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
-	"path"
-
 	"github.com/gomarkdown/markdown"
 	"github.com/joho/godotenv"
 	"github.com/sethvargo/go-envconfig"
 	"gopkg.in/yaml.v3"
+	"log"
+	"os"
 )
 
 type Config struct {
-	CheckInterval       int    `env:"CHECK_INTERVAL, default=60"`
-	MaxHistoryEntries   int    `env:"MAX_HISTORY_ENTRIES, default=10"`
-	ChecksFile          string `env:"CHECKS_FILE, default=checks.yaml"`
-	IncidentsFile       string `env:"INCIDENTS_FILE, default=incidents.html"`
-	HistoryFile         string `env:"HISTORY_FILE, default=history.json"`
-	HtmlOutputDirectory string `env:"HTML_OUTPUT_DIRECTORY, default=status"`
-	Port                int    `env:"PORT"`
-	Token               string `env:"TOKEN"`
-	Chatid              string `env:"CHATID"`
+	CheckInterval     int    `env:"CHECK_INTERVAL, default=60"`
+	MaxHistoryEntries int    `env:"MAX_HISTORY_ENTRIES, default=10"`
+	ChecksFile        string `env:"CHECKS_FILE, default=checks.yaml"`
+	IncidentsFile     string `env:"INCIDENTS_FILE, default=incidents.html"`
+	HistoryFile       string `env:"HISTORY_FILE, default=history.json"`
+	Port              int    `env:"PORT"`
+	Token             string `env:"TOKEN"`
+	Chatid            string `env:"CHATID"`
 }
 
 func readEnv() Config {
 	if err := godotenv.Load(); err != nil {
-		return Config{}
+		log.Println("Error loading .env file, falling back to default environment variables")
 	}
 	var ret Config
 	if err := envconfig.Process(context.Background(), &ret); err != nil {
-		log.Fatal(err)
-	}
-	if err := os.MkdirAll(ret.HtmlOutputDirectory, 0755); err != nil {
 		log.Fatal(err)
 	}
 	return ret
@@ -46,7 +40,6 @@ func (c *Config) PrintEnv() {
 	fmt.Printf("CHECKS_FILE=%s\n", c.ChecksFile)
 	fmt.Printf("INCIDENTS_FILE=%s\n", c.IncidentsFile)
 	fmt.Printf("STATUS_HISTORY_FILE=%s\n", c.HistoryFile)
-	fmt.Printf("HTML_OUTPUT_DIRECTORY=%s\n", c.HtmlOutputDirectory)
 	fmt.Printf("PORT=%d\n", c.Port)
 	fmt.Printf("TOKEN=%s\n", c.Token)
 	fmt.Printf("CHATID=%s\n", c.Chatid)
@@ -54,11 +47,11 @@ func (c *Config) PrintEnv() {
 }
 
 func (c *Config) IndexHtmlFile() string {
-	return path.Join(c.HtmlOutputDirectory, "index.html")
+	return "index.html"
 }
 
 func (c *Config) HistoryHtmlFile() string {
-	return path.Join(c.HtmlOutputDirectory, "history.html")
+	return "history.html"
 }
 
 func (c *Config) ListenHost() string {

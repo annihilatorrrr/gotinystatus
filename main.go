@@ -114,7 +114,6 @@ func checkGroup(g Group) GroupCheckResult {
 		go func(c Check) {
 			defer wg.Done()
 			var status bool
-
 			switch c.Type {
 			case "http":
 				status = checkHTTP(c.Host, c.ExpectedCode)
