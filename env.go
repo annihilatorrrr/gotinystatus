@@ -9,17 +9,19 @@ import (
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
+	"path"
 )
 
 type Config struct {
-	CheckInterval     int    `env:"CHECK_INTERVAL, default=60"`
-	MaxHistoryEntries int    `env:"MAX_HISTORY_ENTRIES, default=10"`
-	ChecksFile        string `env:"CHECKS_FILE, default=checks.yaml"`
-	IncidentsFile     string `env:"INCIDENTS_FILE, default=incidents.html"`
-	HistoryFile       string `env:"HISTORY_FILE, default=history.json"`
-	Port              int    `env:"PORT"`
-	Token             string `env:"TOKEN"`
-	Chatid            string `env:"CHATID"`
+	CheckInterval       int    `env:"CHECK_INTERVAL, default=60"`
+	MaxHistoryEntries   int    `env:"MAX_HISTORY_ENTRIES, default=10"`
+	ChecksFile          string `env:"CHECKS_FILE, default=checks.yaml"`
+	IncidentsFile       string `env:"INCIDENTS_FILE, default=incidents.html"`
+	HistoryFile         string `env:"HISTORY_FILE, default=history.json"`
+	HtmlOutputDirectory string `env:"HTML_OUTPUT_DIRECTORY, default=status"`
+	Port                int    `env:"PORT"`
+	Token               string `env:"TOKEN"`
+	Chatid              string `env:"CHATID"`
 }
 
 func readEnv() Config {
@@ -30,6 +32,9 @@ func readEnv() Config {
 	if err := envconfig.Process(context.Background(), &ret); err != nil {
 		log.Fatal(err)
 	}
+	if err := os.MkdirAll(ret.HtmlOutputDirectory, 0755); err != nil {
+		log.Fatal(err)
+	}
 	return ret
 }
 
@@ -37,6 +42,7 @@ func (c *Config) PrintEnv() {
 	fmt.Println("---------------------")
 	fmt.Printf("CHECK_INTERVAL=%d\n", c.CheckInterval)
 	fmt.Printf("MAX_HISTORY_ENTRIES=%d\n", c.MaxHistoryEntries)
+	fmt.Printf("HTML_OUTPUT_DIRECTORY=%s\n", c.HtmlOutputDirectory)
 	fmt.Printf("CHECKS_FILE=%s\n", c.ChecksFile)
 	fmt.Printf("INCIDENTS_FILE=%s\n", c.IncidentsFile)
 	fmt.Printf("STATUS_HISTORY_FILE=%s\n", c.HistoryFile)
@@ -47,11 +53,11 @@ func (c *Config) PrintEnv() {
 }
 
 func (c *Config) IndexHtmlFile() string {
-	return "index.html"
+	return path.Join(c.HtmlOutputDirectory, "index.html")
 }
 
 func (c *Config) HistoryHtmlFile() string {
-	return "history.html"
+	return path.Join(c.HtmlOutputDirectory, "history.html")
 }
 
 func (c *Config) ListenHost() string {
