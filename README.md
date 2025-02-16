@@ -1,6 +1,6 @@
 # GoTinyStatus
 
-GoTinyStatus is a simple, customizable status page generator that allows you to monitor the status of various services and display them on a clean, dark mode, responsive web page. [Check out an online demo.](https://status.memersgallery.tech/)
+GoTinyStatus is a simple, customizable status page generator that allows you to monitor the status of various services and display them on a clean, dark mode, responsive web page.
 
 
 ![Demo](https://github.com/user-attachments/assets/9611f924-22c5-4335-ab78-84b771edc023)
@@ -51,20 +51,30 @@ GoTinyStatus is a simple, customizable status page generator that allows you to 
    ```
 
 2. Edit the `checks.yaml` file to add or modify the services you want to monitor. Example:
+   Example:
    ```yaml
-   - name: GitHub Home
-     type: http
-     host: https://github.com
-     expected_code: 200
+    - title: 'Group 1'
+      checks:
+        - name: GitHub Home
+          type: http
+          host: https://github.com
+          url: https://docs.github.com/en
+          expected_code: 200
 
-   - name: Google DNS
-     type: ping
-     host: 8.8.8.8
+        - name: Google Public DNS
+          type: ping
+          host: 8.8.8.8
 
-   - name: Database
-     type: port
-     host: db.example.com
-     port: 5432
+        - name: Dummy MySQL Database
+          type: port
+          host: db.example.com
+          port: 3306
+
+       - name: Home Server with Self-Signed Certs
+          type: http
+          host: https://homeserver.local
+          ssc: True
+          expected_code: 200
    ```
 
 3. (Optional) Customize the `incidents.md` file to add any known incidents or maintenance schedules.
