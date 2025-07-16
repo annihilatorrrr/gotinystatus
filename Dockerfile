@@ -3,7 +3,7 @@ WORKDIR /gotinystatus
 RUN apk update && apk upgrade --available && sync && apk add --no-cache --virtual .build-deps
 COPY . .
 RUN go build -ldflags="-w -s" .
-FROM alpine:3.22.0
+FROM alpine:3.22.1
 RUN apk update && apk upgrade --available && sync
 COPY --from=builder /gotinystatus/gotinystatus /gotinystatus
 COPY --from=builder /gotinystatus/incidents.html /incidents.html
