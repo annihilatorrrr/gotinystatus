@@ -1,4 +1,4 @@
-FROM golang:1.26.4-alpine3.23 AS builder
+FROM golang:1.27rc2-alpine3.23 AS builder
 WORKDIR /gotinystatus
 RUN apk update && apk upgrade --available && sync && apk add --no-cache --virtual .build-deps
 COPY . .
